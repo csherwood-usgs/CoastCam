@@ -50,10 +50,11 @@ class CameraCalibration(object):
 
         self.local_origin = local_origin
 
-
         if self.coordinate_system == 'geo':
+            # calculate local extrinsics
             self.beta, self.local_extrinsics = self._convert_beta()
         else:
+            # already in local coordinates, but need to make beta array
             self.beta = beta = np.array([*local_extrinsics.values()], dtype='float64')
 
         self.P = self._assembleP()
