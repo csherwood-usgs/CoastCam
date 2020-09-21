@@ -61,21 +61,17 @@ class Rectifier(object):
 
     def _find_distort_UV(self, calibration):
         # get UV for pinhole camera
-        print("target_grid.xyz: ",np.shape(self.target_grid.xyz))
         xyz = np.vstack((
             self.target_grid.xyz.T,
             np.ones((len(self.target_grid.xyz),))
         ))
-        print("in _find_UV: tmp:",np.shape(xyz))
-        print(xyz)
-        print("in _find_UV: P",np.shape(calibration.P))
-        print(calibration.P)
         UV = np.matmul(calibration.P, xyz)
 
         # make homogenous
         div = np.tile(UV[2, :], (3, 1))
         UV = UV / div
 
+        # get and rename
         NU = calibration.lcp['NU']
         NV = calibration.lcp['NV']
         c0U = calibration.lcp['c0U']
@@ -87,12 +83,8 @@ class Rectifier(object):
         d3 = calibration.lcp['d3']
         t1 = calibration.lcp['t1']
         t2 = calibration.lcp['t2']
-        print("in _find_distort_UV: Shape of UV:",np.shape(UV))
         u = UV[0, :]
         v = UV[1, :]
-
-        print("in _find_distort_UV: shape of u and v")
-        print(np.shape(u),np.shape(v))
 
         # normalize distances
         x = (u - c0U) / fx
@@ -108,12 +100,9 @@ class Rectifier(object):
         yd = y*fr + dy
         Ud = xd*fx+c0U
         Vd = yd*fy+c0V
-        print("Ud,Vd:")
-        print(Ud)
-        print(Vd)
 
+        # Declare array for flagged values
         flag = np.ones_like(Ud)
-        print("full flag has ",np.sum(flag))
 
         # find negative UV coordinates
         flag[np.where( Ud<0.)]=0.
@@ -136,34 +125,19 @@ class Rectifier(object):
         dxm=2.*t1*xm*ym + t2*(r2m+2.*xm*xm)
         dym=t1*(r2m+2.*ym*ym) + 2.*t2*xm*ym
 
-        print("xm, ym")
-        print(xm)
-        print(ym)
-        print("dxm, dym")
-        print(dxm, dym)
-
         # Find Values Larger than those at corners
         flag[np.where(np.abs(dy)>np.max(np.abs(dym)))]=0.
         flag[np.where(np.abs(dx)>np.max(np.abs(dxm)))]=0.
-        print("flag has ",np.sum(flag))
 
         DU = Ud.reshape(self.target_grid.X.shape, order='F')
         DV = Vd.reshape(self.target_grid.Y.shape, order='F')
-        print("end of _find_distort_UV: shape of DU and DV: ",np.shape(DU),np.shape(DV))
-        print(DU)
-        print(DV)
 
         # find negative Zc values and add to flag
-        print("IC, R")
-        print(calibration.IC)
-        print(calibration.R)
         UV = np.matmul(calibration.P, xyz)
         xyzC = np.matmul(calibration.R,np.matmul(calibration.IC,xyz))
-        print("xyzC")
-        print(xyzC)
         flag[np.where(xyzC[2,:]<=0.)]=0.
-        print("flag has ",np.sum(flag))
 
+        # TODO - These flags are not applied
 
         return DU, DV, flag
 
@@ -173,20 +147,18 @@ class Rectifier(object):
         Arguments:
             DU (np.ndarray): Pixel location in camera orientation and coordinate system
             DV (np.ndarray): Pixel location in cmaera orientation and coorindate system
+            image (np.ndarray [nx,ny,nc]) with RGB values at U,V points.
 
         Returns:
             K (np.ndarray): Pixel intensity for each point in the image
         """
-
-        print("in get_pixels: target_grid.X shape:",np.shape(self.target_grid.X))
         K = np.zeros((
             self.target_grid.X.shape[0],
             self.target_grid.X.shape[1],
             self.ncolors
         ))
-        # print('in get pixels: shape of arange:')
-        # print(np.shape(np.arange(1, image.shape[0] + 1)),\
-        #    np.shape(np.arange(1, image.shape[1] + 1)))
+
+        # TODO - compare these two interpolation methods
         # for c, _ in enumerate(['r', 'b', 'g']):
         #     print("c=",c)
         #     rbs = RectBivariateSpline(
@@ -199,7 +171,6 @@ class Rectifier(object):
         #     )
         #     K[:, :, c] = rbs.ev(DV, DU)
 
-        print("shape of revel(DU): ",np.shape(np.ravel(DU)))
         for c, _ in enumerate(['r', 'b', 'g']):
             rgi = RegularGridInterpolator(
                 (np.arange(0, image.shape[0]),
@@ -209,9 +180,6 @@ class Rectifier(object):
                 bounds_error=False,
                 fill_value=np.nan)
             K[:, :, c] = rgi((DV,DU))
-
-        print("shape K",np.shape(K))
-        print(K)
 
         # mask out values out of range like matlab
         # avoid runtime nan comparison warning (DU, DV already have nans)
@@ -228,9 +196,7 @@ class Rectifier(object):
             mask_u,
             mask_v
         )
-        print("shape mask:",np.shape(mask))
         K[mask,:] = np.nan
-        print(K)
         return K
 
     def assemble_image_weights(self, K):
