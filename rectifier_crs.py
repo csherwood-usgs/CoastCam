@@ -1,6 +1,6 @@
 import imageio
 import numpy as np
-from scipy.interpolate import RectBivariateSpline
+from scipy.interpolate import RectBivariateSpline, RegularGridInterpolator
 from scipy.ndimage.morphology import distance_transform_edt
 
 #from .calibration import CameraCalibration #CRS
@@ -8,7 +8,7 @@ from scipy.ndimage.morphology import distance_transform_edt
 
 class TargetGrid(object):
     """Grid generated to georectify image.
-    
+
     CRS modified to make endpoints inclusive
     Notes:
         - Used to maps points in world coordinates to pixels
@@ -59,29 +59,23 @@ class Rectifier(object):
         self.target_grid = target_grid
         self.ncolors = ncolors
 
-    def find_UV(self, calibration):
+    def _find_distort_UV(self, calibration):
         # get UV for pinhole camera
         print("target_grid.xyz: ",np.shape(self.target_grid.xyz))
-        tmp = np.vstack((
+        xyz = np.vstack((
             self.target_grid.xyz.T,
             np.ones((len(self.target_grid.xyz),))
         ))
-        print("tmp:",np.shape(tmp))
-        UV = np.matmul(calibration.P, tmp)
+        print("in _find_UV: tmp:",np.shape(xyz))
+        print(xyz)
+        print("in _find_UV: P",np.shape(calibration.P))
+        print(calibration.P)
+        UV = np.matmul(calibration.P, xyz)
+
         # make homogenous
         div = np.tile(UV[2, :], (3, 1))
         UV = UV / div
 
-        # distort pixel locations to match camera distortion
-        U, V = self._distort_UV_BB(UV, calibration)
-
-        return U, V
-
-    def _distort_UV_BB(self, UV: np.ndarray, calibration: CameraCalibration):
-        """
-        This version is based on Brittany Bruder's version and does not need
-        the extra intrinsic values r, fr, x, y, dx, and dy
-        """
         NU = calibration.lcp['NU']
         NV = calibration.lcp['NV']
         c0U = calibration.lcp['c0U']
@@ -93,12 +87,11 @@ class Rectifier(object):
         d3 = calibration.lcp['d3']
         t1 = calibration.lcp['t1']
         t2 = calibration.lcp['t2']
-        print("Shape of UV")
-        print(np.shape(UV))
+        print("in _find_distort_UV: Shape of UV:",np.shape(UV))
         u = UV[0, :]
         v = UV[1, :]
 
-        print("shape of u and v")
+        print("in _find_distort_UV: shape of u and v")
         print(np.shape(u),np.shape(v))
 
         # normalize distances
@@ -115,8 +108,13 @@ class Rectifier(object):
         yd = y*fr + dy
         Ud = xd*fx+c0U
         Vd = yd*fy+c0V
+        print("Ud,Vd:")
+        print(Ud)
+        print(Vd)
 
         flag = np.ones_like(Ud)
+        print("full flag has ",np.sum(flag))
+
         # find negative UV coordinates
         flag[np.where( Ud<0.)]=0.
         flag[np.where( Vd<0.)]=0.
@@ -138,94 +136,36 @@ class Rectifier(object):
         dxm=2.*t1*xm*ym + t2*(r2m+2.*xm*xm)
         dym=t1*(r2m+2.*ym*ym) + 2.*t2*xm*ym
 
+        print("xm, ym")
+        print(xm)
+        print(ym)
+        print("dxm, dym")
+        print(dxm, dym)
+
         # Find Values Larger than those at corners
         flag[np.where(np.abs(dy)>np.max(np.abs(dym)))]=0.
         flag[np.where(np.abs(dx)>np.max(np.abs(dxm)))]=0.
+        print("flag has ",np.sum(flag))
 
         DU = Ud.reshape(self.target_grid.X.shape, order='F')
         DV = Vd.reshape(self.target_grid.Y.shape, order='F')
+        print("end of _find_distort_UV: shape of DU and DV: ",np.shape(DU),np.shape(DV))
+        print(DU)
+        print(DV)
 
-        return (DU, DV), flag
+        # find negative Zc values and add to flag
+        print("IC, R")
+        print(calibration.IC)
+        print(calibration.R)
+        UV = np.matmul(calibration.P, xyz)
+        xyzC = np.matmul(calibration.R,np.matmul(calibration.IC,xyz))
+        print("xyzC")
+        print(xyzC)
+        flag[np.where(xyzC[2,:]<=0.)]=0.
+        print("flag has ",np.sum(flag))
 
-    def _distort_UV(self, UV: np.ndarray, calibration: CameraCalibration):
-        """Distorts pixel locations to match camera distortion.
 
-        Notes:
-            - Derived from distortCaltech.m from Coastal Imaging Research Network - Oregon State University
-            - Originally derived from Caltech lens distortion manuals
-            - Required to locate correct pixel values for each position in distorted imaage for DJI phantom.
-
-        Arguments:
-            UV (np.ndarray): Coordinates of each pixel (undistorted).
-            calibration (CameraCalibration): CameraCalibration including intrinsic (lcp) and extrinsic (beta) coefficients.
-
-        Returns:
-            distorted_uv (tuple): U and V arrays distorted to match camera distortion.
-        """
-        # calculate normalized image coordinates
-        # - undistorted U-V to x-y space (normalized image coordinates)
-        # - translated image center divded by focal length in pixels
-        u = UV[0, :]
-        v = UV[1, :]
-        x = (u - calibration.lcp['c0U']) / calibration.lcp['fx']
-        y = (v - calibration.lcp['c0V']) / calibration.lcp['fy']
-
-        # distortion found based on large format units
-        r2 = x*x + y*y
-        fr = np.interp(
-            np.sqrt(r2),
-            calibration.lcp['r'],
-            calibration.lcp['fr'],
-            right=np.nan
-        )
-
-        # get values for dx and dy at grid locations
-        # - use linear in x + y direction
-        # - this method will extrapolate, so we mask out values beyond
-        #   source grid with nans to match matlab version
-        mask_x = np.logical_or(
-            x <= calibration.lcp['x'].min(),
-            x >= calibration.lcp['x'].max()
-        )
-        mask_y = np.logical_or(
-            y <= calibration.lcp['y'].min(),
-            y >= calibration.lcp['y'].max()
-        )
-        mask = np.logical_or(
-            mask_x,
-            mask_y
-        )
-
-        dx_rbs = RectBivariateSpline(
-            calibration.lcp['y'],
-            calibration.lcp['x'],
-            calibration.lcp['dx'],
-            kx=1,
-            ky=1
-        )
-        dx = dx_rbs.ev(y, x)
-        dx[mask] = np.nan
-        dy_rbs = RectBivariateSpline(
-            calibration.lcp['y'],
-            calibration.lcp['x'],
-            calibration.lcp['dy'],
-            kx=1,
-            ky=1
-        )
-        dy = dy_rbs.ev(y, x)
-        dy[mask] = np.nan
-
-        x2 = x*fr + dx
-        y2 = y*fr + dy
-
-        # results in chip pixel units
-        ud = x2 * calibration.lcp['fx'] + calibration.lcp['c0U']
-        vd = y2 * calibration.lcp['fy'] + calibration.lcp['c0V']
-        # reshape to match matlab version
-        DU = ud.reshape(self.target_grid.X.shape, order='F')
-        DV = vd.reshape(self.target_grid.Y.shape, order='F')
-
-        return (DU, DV)
+        return DU, DV, flag
 
     def get_pixels(self, DU, DV, image):
         """Return pixel values for each xyz point from the image
@@ -237,24 +177,44 @@ class Rectifier(object):
         Returns:
             K (np.ndarray): Pixel intensity for each point in the image
         """
+
+        print("in get_pixels: target_grid.X shape:",np.shape(self.target_grid.X))
         K = np.zeros((
             self.target_grid.X.shape[0],
             self.target_grid.X.shape[1],
             self.ncolors
         ))
+        # print('in get pixels: shape of arange:')
+        # print(np.shape(np.arange(1, image.shape[0] + 1)),\
+        #    np.shape(np.arange(1, image.shape[1] + 1)))
+        # for c, _ in enumerate(['r', 'b', 'g']):
+        #     print("c=",c)
+        #     rbs = RectBivariateSpline(
+        #         # use this range to match matlab exactly
+        #         np.arange(1, image.shape[0] + 1),
+        #         np.arange(1, image.shape[1] + 1),
+        #         image[:, :, c],
+        #         kx=1,
+        #         ky=1
+        #     )
+        #     K[:, :, c] = rbs.ev(DV, DU)
+
+        print("shape of revel(DU): ",np.shape(np.ravel(DU)))
         for c, _ in enumerate(['r', 'b', 'g']):
-            rbs = RectBivariateSpline(
-                # use this range to match matlab exactly
-                np.arange(1, image.shape[0] + 1),
-                np.arange(1, image.shape[1] + 1),
-                image[:, :, c],
-                kx=1,
-                ky=1
-            )
-            K[:, :, c] = rbs.ev(DV, DU)
+            rgi = RegularGridInterpolator(
+                (np.arange(0, image.shape[0]),
+                 np.arange(0, image.shape[1])),
+                image[:,:,c],
+                method='nearest',
+                bounds_error=False,
+                fill_value=np.nan)
+            K[:, :, c] = rgi((DV,DU))
+
+        print("shape K",np.shape(K))
+        print(K)
 
         # mask out values out of range like matlab
-        # avoid runtime nan comparison warning (UV, DV already have nans)
+        # avoid runtime nan comparison warning (DU, DV already have nans)
         with np.errstate(invalid='ignore'):
             mask_u = np.logical_or(
                 DU <= 1,
@@ -268,8 +228,9 @@ class Rectifier(object):
             mask_u,
             mask_v
         )
-        K[mask] = np.nan
-
+        print("shape mask:",np.shape(mask))
+        K[mask,:] = np.nan
+        print(K)
         return K
 
     def assemble_image_weights(self, K):
@@ -335,26 +296,30 @@ class Rectifier(object):
         total_pairs = len(image_files)
         steps_per_pair = 3
         total_steps = total_pairs * steps_per_pair
-        if progress_callback is None:
-            progress_callback = lambda x: x
+        # if progress_callback is None:
+        #     progress_callback = lambda x: x
 
         for cur_idx, (image_file, intrinsic_cal, extrinsic_cal) in enumerate(zip(image_files, intrinsic_cal_list, extrinsic_cal_list)):
             pct_base = cur_idx * steps_per_pair
-
+            print("loop",cur_idx,"calibrations:")
+            print(intrinsic_cal, extrinsic_cal)
             # load camera calibration file and find pixel locations
             camera_calibration = CameraCalibration(metadata, intrinsic_cal, extrinsic_cal, local_origin)
-            U, V = self.find_UV(camera_calibration)
-
-            progress_callback(int((pct_base + 1) / total_steps * 100))
+            print("back from CameraCalibration")
+            U, V, flag = self._find_distort_UV(camera_calibration)
+            print("back from _find_distort_UV")
+#            progress_callback(int((pct_base + 1) / total_steps * 100))
 
             # load image and apply weights to pixels
             image = imageio.imread(image_file)
             print(np.shape(image),print(np.shape(V)))
             K = self.get_pixels(U, V, image)
+            print("back from get_pixels")
             W = self.assemble_image_weights(K)
+            print("back from assemble_image_weights")
             K_weighted = self.apply_weights_to_pixels(K, W)
-
-            progress_callback(int((pct_base + 2) / total_steps * 100))
+            print("back from apply_weights_to_pixles")
+            # progress_callback(int((pct_base + 2) / total_steps * 100))
 
             # add up weights and pixel itensities
             W[np.isnan(W)] = 0
@@ -362,7 +327,7 @@ class Rectifier(object):
             K_weighted[np.isnan(K_weighted)] = 0
             M = M + K_weighted
 
-            progress_callback(int((pct_base + 3) / total_steps * 100))
+            # progress_callback(int((pct_base + 3) / total_steps * 100))
 
         # stop divide by 0 warnings
         with np.errstate(invalid='ignore'):

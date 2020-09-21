@@ -57,7 +57,7 @@ class CameraCalibration(object):
             # already in local coordinates, but need to make beta array
             self.beta = beta = np.array([*local_extrinsics.values()], dtype='float64')
 
-        self.P = self._assembleP()
+        self.P, self.R, self.IC = self._assembleP()
 
     def __repr__(self):
         msg = (
@@ -126,7 +126,7 @@ class CameraCalibration(object):
         # - normalize to make last element equal 1
         P = P/P[-1, -1]
 
-        return P
+        return P, R, IC
 
 
 def angle2R(azimuth, tilt, swing):
