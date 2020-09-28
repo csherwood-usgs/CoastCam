@@ -1,12 +1,85 @@
 #
 import numpy as np
-
+import datetime
+from dateutil import tz
 import json
 
 def json2dict(jsonfile):
     with open(jsonfile, "r") as data:
         dictname = json.loads(data.read())
     return dictname
+
+def dts2unix(date_time_string, timezone='eastern'):
+    """
+    Return the unix epoch time and a datetime object with aware UTC time zone
+
+    Input:
+        date_time_string in format YY-MM-DD hh:mm
+        time zone for date_time string
+
+    Returns:
+        epoch number, datetime_object
+    """
+    if timezone.lower() == 'eastern':
+        tzone = tz.gettz('America/New_York')
+    elif timezone.lower() == 'utc':
+        tzone = tz.gettz('UTC')
+
+    date_time_obj = datetime.datetime.strptime(date_time_string, '%Y-%m-%d %H:%M').replace(tzinfo=tzone)
+    ts = date_time_obj.timestamp()
+    return int(ts), date_time_obj
+
+def unix2dts(unixnumber, timezone='eastern'):
+    """
+    Get local time from unix number
+
+    Input:
+        unixnumber - string containing unix time (aka epoch)
+    Returns:
+        date_time_string, date_time_object in utc
+
+    TODO: not sure why this returns the correct value without specifying that input time zone is eastern
+    """
+    if timezone.lower() == 'eastern':
+        tzone = tz.gettz('America/New_York')
+    elif timezone.lower() == 'utc':
+        tzone = tz.gettz('UTC')
+
+    # images other than "snaps" end in 1, 2,...but these are not part of the time stamp.
+    # replace with zero
+    ts = int( unixnumber[:-1]+'0')
+    date_time_obj =  datetime.datetime.utcfromtimestamp(ts)
+    date_time_str = date_time_obj.strftime('%Y-%m-%d %H:%M:%S')
+    return date_time_str, date_time_obj
+
+def filetime2timestr(filename, timezone='eastern'):
+    """
+    Return the local time from an image filename
+
+    """
+    if timezone.lower() == 'eastern':
+        tzone = tz.gettz('America/New_York')
+    elif timezone.lower() == 'utc':
+        tzone = tz.gettz('UTC')
+
+    s = filename.split('.')[0]
+    date_time_str, date_time_obj = unix2dts(s)
+    return date_time_str
+
+def timestr2filename(date_time_str, camera = 'c1', image_type = 'timex', timezone='eastern'):
+    # filenames have extra digit added to time stamps - here is a dict listing them
+    last_number = {'snap': 0, 'timex': 1, 'var': 2, 'bright': 3, 'dark': 4, 'rundark': 5}
+    if timezone.lower() == 'eastern':
+        tzone = tz.gettz('America/New_York')
+    elif timezone.lower() == 'utc':
+        tzone = tz.gettz('UTC')
+
+    date_time_obj = datetime.datetime.strptime(date_time_str, '%Y-%m-%d %H:%M').replace(tzinfo=tzone)
+    ts = int(date_time_obj.timestamp())+int(last_number[image_type])
+
+    fn = str(ts)+'.'+camera+'.'+image_type+'.jpg'
+    return fn
+
 
 def local_transform_points( xo, yo, ang, flag, xin, yin):
     """

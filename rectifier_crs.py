@@ -158,28 +158,30 @@ class Rectifier(object):
             self.ncolors
         ))
 
-        # TODO - compare these two interpolation methods
-        # for c, _ in enumerate(['r', 'b', 'g']):
-        #     print("c=",c)
-        #     rbs = RectBivariateSpline(
-        #         # use this range to match matlab exactly
-        #         np.arange(1, image.shape[0] + 1),
-        #         np.arange(1, image.shape[1] + 1),
-        #         image[:, :, c],
-        #         kx=1,
-        #         ky=1
-        #     )
-        #     K[:, :, c] = rbs.ev(DV, DU)
-
-        for c, _ in enumerate(['r', 'b', 'g']):
-            rgi = RegularGridInterpolator(
-                (np.arange(0, image.shape[0]),
-                 np.arange(0, image.shape[1])),
-                image[:,:,c],
-                method='nearest',
-                bounds_error=False,
-                fill_value=np.nan)
-            K[:, :, c] = rgi((DV,DU))
+        # Having tested both interpolation routines, the rgi is about five rectify_images
+        # faster, no visual difference, but that has not been checked quantitatively.
+        if False:
+            for c, _ in enumerate(['r', 'b', 'g']):
+                print("c=",c)
+                rbs = RectBivariateSpline(
+                    # use this range to match matlab exactly
+                    np.arange(1, image.shape[0] + 1),
+                    np.arange(1, image.shape[1] + 1),
+                    image[:, :, c],
+                    kx=1,
+                    ky=1
+                )
+                K[:, :, c] = rbs.ev(DV, DU)
+        else:
+            for c, _ in enumerate(['r', 'b', 'g']):
+                rgi = RegularGridInterpolator(
+                    (np.arange(0, image.shape[0]),
+                     np.arange(0, image.shape[1])),
+                    image[:,:,c],
+                    method='linear',
+                    bounds_error=False,
+                    fill_value=np.nan)
+                K[:, :, c] = rgi((DV,DU))
 
         # mask out values out of range like matlab
         # avoid runtime nan comparison warning (DU, DV already have nans)
