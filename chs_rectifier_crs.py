@@ -1,4 +1,5 @@
 import imageio
+import fsspec
 import numpy as np
 from scipy.interpolate import RectBivariateSpline, RegularGridInterpolator
 from scipy.ndimage.morphology import distance_transform_edt
@@ -279,9 +280,11 @@ class Rectifier(object):
 #            progress_callback(int((pct_base + 1) / total_steps * 100))
 
             # load image and apply weights to pixels
-            
-            image = imageio.imread(image_file)
-            # print(np.shape(image),print(np.shape(V)))
+            impath = 'cmgp-coastcam/cameras/caco-01/products/'+image_file
+            fs = fsspec.filesystem('s3')
+            with fs.open(impath) as f:
+                image = imageio.read(f)
+            print('Image shape: ',image.shape)   
             K = self.get_pixels(U, V, image)
             print("back from get_pixels")
             W = self.assemble_image_weights(K)
