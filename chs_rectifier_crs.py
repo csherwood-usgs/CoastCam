@@ -283,7 +283,7 @@ class Rectifier(object):
             impath = 'cmgp-coastcam/cameras/caco-01/products/'+image_file
             fs = fsspec.filesystem('s3')
             with fs.open(impath) as f:
-                image = imageio.read(f)
+                image = imageio.get_reader(f,'.jpg')
             print('Image shape: ',image.shape)   
             K = self.get_pixels(U, V, image)
             print("back from get_pixels")
