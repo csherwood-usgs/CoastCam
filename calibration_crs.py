@@ -55,7 +55,7 @@ class CameraCalibration(object):
             self.beta, self.local_extrinsics = self._convert_beta()
         else:
             # already in local coordinates, but need to make beta array
-            self.beta = beta = np.array([*local_extrinsics.values()], dtype='float64')
+            self.beta = beta = np.array([*self.local_extrinsics.values()], dtype='float64')
 
         self.P, self.R, self.IC = self._assembleP()
 
