@@ -244,7 +244,7 @@ class Rectifier(object):
 
         return K_weighted
 
-    def rectify_images(self, metadata, image_files, intrinsic_cal_list, extrinsic_cal_list, local_origin, progress_callback=None):
+    def rectify_images(self, metadata, image_files, intrinsic_cal_list, extrinsic_cal_list, local_origin, progress_callback=None, fs=None):
         """Given list of image paths from N cameras, return a georectified image (ndarray)
 
         Arguments:
@@ -279,7 +279,11 @@ class Rectifier(object):
 #            progress_callback(int((pct_base + 1) / total_steps * 100))
 
             # load image and apply weights to pixels
-            image = imageio.imread(image_file)
+            if fs:
+                with fs.open(image_file) as f:
+                    image = imageio.imread(f)
+            else:
+                image = imageio.imread(image_file)
             print(np.shape(image),print(np.shape(V)))
             K = self.get_pixels(U, V, image)
             print("back from get_pixels")
