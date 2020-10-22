@@ -3,7 +3,7 @@ import numpy as np
 from scipy.interpolate import RectBivariateSpline, RegularGridInterpolator
 from scipy.ndimage.morphology import distance_transform_edt
 
-#from .calibration import CameraCalibration #CRS
+from calibration_crs import CameraCalibration #CRS
 
 
 class TargetGrid(object):

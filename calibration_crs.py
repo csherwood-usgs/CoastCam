@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import scipy.io
 
+from coastcam_funcs import *
 
 class CameraCalibration(object):
     """Camera calibration saved in .mat file and method to assemble Projective (P) martrix.
