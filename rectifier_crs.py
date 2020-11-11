@@ -141,7 +141,7 @@ class Rectifier(object):
 
         return DU, DV, flag
 
-    def get_pixels(self, DU, DV, image):
+    def get_pixels(self, DU, DV, image, interp_method='rgi'):
         """Return pixel values for each xyz point from the image
 
         Arguments:
@@ -160,9 +160,8 @@ class Rectifier(object):
 
         # Having tested both interpolation routines, the rgi is about five rectify_images
         # faster, no visual difference, but that has not been checked quantitatively.
-        if False:
+        if interp_method == 'rbs':
             for c, _ in enumerate(['r', 'b', 'g']):
-                print("c=",c)
                 rbs = RectBivariateSpline(
                     # use this range to match matlab exactly
                     np.arange(1, image.shape[0] + 1),
@@ -172,7 +171,7 @@ class Rectifier(object):
                     ky=1
                 )
                 K[:, :, c] = rbs.ev(DV, DU)
-        else:
+        elif interp_method == 'rgi':
             for c, _ in enumerate(['r', 'b', 'g']):
                 rgi = RegularGridInterpolator(
                     (np.arange(0, image.shape[0]),
@@ -182,6 +181,8 @@ class Rectifier(object):
                     bounds_error=False,
                     fill_value=np.nan)
                 K[:, :, c] = rgi((DV,DU))
+        else:
+            print('No valid interp method')
 
         # mask out values out of range like matlab
         # avoid runtime nan comparison warning (DU, DV already have nans)
@@ -224,7 +225,7 @@ class Rectifier(object):
             W[:] = 1
 
         W = W / np.max(W)
-        W[W == 0] = np.nan
+        #W[W == 0] = np.nan
 
         return W
 
@@ -239,36 +240,36 @@ class Rectifier(object):
             K_weighted(np.ndarray): Pixel intensity weighted for merging
         """
         W_nonan = W.copy()
-        W_nonan[np.isnan(W_nonan)] = 0
+        #W_nonan[np.isnan(W_nonan)] = 0
         K_weighted = K*W_nonan[:, :, np.newaxis]
 
         return K_weighted
 
-    def rectify_images(self, metadata, image_files, intrinsic_cal_list, extrinsic_cal_list, local_origin, progress_callback=None, fs=None):
-        """Given list of image paths from N cameras, return a georectified image (ndarray)
+    def rectify_images(self, metadata, image_files, intrinsic_cal_list, extrinsic_cal_list, local_origin, fs=None, interp_method = 'rgi'):
+        """Georectify and blend images from multiple cameras 
 
         Arguments:
-            image_files (list): List of image files.
+            metadata (dict):
+            image_files (list): List of image files
+            intrinsic_cal_list (list): list of paths to internal calibrations (one for each camera)
+            extrinsic_cal_list (list): list of paths to external calibrations (one for each camera)
+            local_origin:
+            fs: (object): fsspec file spec object for folder on S3 bucket. If none, normal file system will be used.
+            interp_method: (string): either 'rbs' (rectilinear bicubic spline) or 'rgi' (regular grid interpolator: linear and faster)
             camera_calibration_files (list): List of calibrations for cameras used to get image_files.
-            progress_callback (callable): Optional; callable taking one parameter, an integer of progress 0-100
 
         Returns:
             M (np.ndarray): Georectified images merged from supplied images.
         """
+        # array for final pixel values
         M = np.tile(
             np.zeros_like(self.target_grid.X[:, :, np.newaxis]),
             (self.ncolors,)
         )
+        # array for weights
         totalW = M.copy()
 
-        total_pairs = len(image_files)
-        steps_per_pair = 3
-        total_steps = total_pairs * steps_per_pair
-        # if progress_callback is None:
-        #     progress_callback = lambda x: x
-
         for cur_idx, (image_file, intrinsic_cal, extrinsic_cal) in enumerate(zip(image_files, intrinsic_cal_list, extrinsic_cal_list)):
-            pct_base = cur_idx * steps_per_pair
             print("loop",cur_idx,"calibrations:")
             print(intrinsic_cal, extrinsic_cal)
             # load camera calibration file and find pixel locations
@@ -276,33 +277,36 @@ class Rectifier(object):
             print("back from CameraCalibration")
             U, V, flag = self._find_distort_UV(camera_calibration)
             print("back from _find_distort_UV")
-#            progress_callback(int((pct_base + 1) / total_steps * 100))
 
             # load image and apply weights to pixels
             if fs:
+                # using fsspec for S3 files
                 with fs.open(image_file) as f:
                     image = imageio.imread(f)
             else:
+                # regular file system
                 image = imageio.imread(image_file)
-            print(np.shape(image),print(np.shape(V)))
-            K = self.get_pixels(U, V, image)
+                
+            K = self.get_pixels(U, V, image, interp_method=interp_method)
+            print("Shape of K: ",np.shape(K), "shape of V: ",np.shape(V))
             print("back from get_pixels")
             W = self.assemble_image_weights(K)
             print("back from assemble_image_weights")
             K_weighted = self.apply_weights_to_pixels(K, W)
             print("back from apply_weights_to_pixles")
-            # progress_callback(int((pct_base + 2) / total_steps * 100))
 
             # add up weights and pixel itensities
-            W[np.isnan(W)] = 0
+            # W[np.isnan(W)] = 0
             totalW = totalW + W[:, :, np.newaxis]
             K_weighted[np.isnan(K_weighted)] = 0
             M = M + K_weighted
 
-            # progress_callback(int((pct_base + 3) / total_steps * 100))
-
         # stop divide by 0 warnings
         with np.errstate(invalid='ignore'):
             M = M / totalW
-
-        return M
+        
+        #TODO - is there any need to retain the NaNs, or is replacing by zero ok?
+        M[np.isnan(M)]=0
+        
+        #TODO - don't need to return W and K...they are from last 
+        return M.astype(np.uint8), W, K
