@@ -136,10 +136,10 @@ class Rectifier(object):
         UV = np.matmul(calibration.P, xyz)
         xyzC = np.matmul(calibration.R,np.matmul(calibration.IC,xyz))
         flag[np.where(xyzC[2,:]<=0.)]=0.
-
-        # TODO - These flags are not applied
-
-        return DU, DV, flag
+        flag = flag.reshape(self.target_grid.X.shape, order='F')
+        
+        # apply the flag to zero-out non-valid points
+        return DU*flag, DV*flag, flag
 
     def get_pixels(self, DU, DV, image, interp_method='rgi'):
         """Return pixel values for each xyz point from the image
@@ -147,7 +147,10 @@ class Rectifier(object):
         Arguments:
             DU (np.ndarray): Pixel location in camera orientation and coordinate system
             DV (np.ndarray): Pixel location in cmaera orientation and coorindate system
-            image (np.ndarray [nx,ny,nc]) with RGB values at U,V points.
+            image (np.ndarray [nx,ny,nc]) with RGB values at U,V points
+            interp_method (string):
+                'rgi' - uses SciPy RegularGridInterpolator (linear, about 5x faster)
+                'rbs' - use SciPy RectBivariateSpline (smoother?)
 
         Returns:
             K (np.ndarray): Pixel intensity for each point in the image
@@ -158,7 +161,7 @@ class Rectifier(object):
             self.ncolors
         ))
 
-        # Having tested both interpolation routines, the rgi is about five rectify_images
+        # Having tested both interpolation routines, the rgi is about five times
         # faster, no visual difference, but that has not been checked quantitatively.
         if interp_method == 'rbs':
             for c, _ in enumerate(['r', 'b', 'g']):
@@ -182,9 +185,10 @@ class Rectifier(object):
                     fill_value=np.nan)
                 K[:, :, c] = rgi((DV,DU))
         else:
+            #TODO - what is the proper way to handle this error?
             print('No valid interp method')
 
-        # mask out values out of range like matlab
+        # mask out values out of range like Matlab
         # avoid runtime nan comparison warning (DU, DV already have nans)
         with np.errstate(invalid='ignore'):
             mask_u = np.logical_or(
@@ -220,13 +224,10 @@ class Rectifier(object):
         # so, find the nans, then invert so it works with the function
         W = distance_transform_edt(~np.isnan(K[:, :, 0]))
 
-        # Not sure when this would happend, but I'm including it because it's in the MATLAB code
+        # Not sure when this would happen, but included because it's in the MATLAB code
         if np.isinf(np.max(W)):
             W[:] = 1
-
         W = W / np.max(W)
-        #W[W == 0] = np.nan
-
         return W
 
     def apply_weights_to_pixels(self, K, W):
@@ -240,9 +241,7 @@ class Rectifier(object):
             K_weighted(np.ndarray): Pixel intensity weighted for merging
         """
         W_nonan = W.copy()
-        #W_nonan[np.isnan(W_nonan)] = 0
         K_weighted = K*W_nonan[:, :, np.newaxis]
-
         return K_weighted
 
     def rectify_images(self, metadata, image_files, intrinsic_cal_list, extrinsic_cal_list, local_origin, fs=None, interp_method = 'rgi'):
@@ -274,9 +273,7 @@ class Rectifier(object):
             print(intrinsic_cal, extrinsic_cal)
             # load camera calibration file and find pixel locations
             camera_calibration = CameraCalibration(metadata, intrinsic_cal, extrinsic_cal, local_origin)
-            print("back from CameraCalibration")
             U, V, flag = self._find_distort_UV(camera_calibration)
-            print("back from _find_distort_UV")
 
             # load image and apply weights to pixels
             if fs:
@@ -288,12 +285,12 @@ class Rectifier(object):
                 image = imageio.imread(image_file)
                 
             K = self.get_pixels(U, V, image, interp_method=interp_method)
-            print("Shape of K: ",np.shape(K), "shape of V: ",np.shape(V))
-            print("back from get_pixels")
+            #print("Shape of K: ",np.shape(K), "shape of V: ",np.shape(V))
+            #print("back from get_pixels")
             W = self.assemble_image_weights(K)
-            print("back from assemble_image_weights")
+            #print("back from assemble_image_weights")
             K_weighted = self.apply_weights_to_pixels(K, W)
-            print("back from apply_weights_to_pixles")
+            #print("back from apply_weights_to_pixles")
 
             # add up weights and pixel itensities
             # W[np.isnan(W)] = 0
@@ -308,5 +305,5 @@ class Rectifier(object):
         #TODO - is there any need to retain the NaNs, or is replacing by zero ok?
         M[np.isnan(M)]=0
         
-        #TODO - don't need to return W and K...they are from last 
-        return M.astype(np.uint8), W, K
+        #TODO - don't need to return W, K or flag...they are from last image processed
+        return M.astype(np.uint8), W, K, flag
