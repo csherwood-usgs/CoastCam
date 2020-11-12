@@ -1,8 +1,39 @@
 #
 import numpy as np
 import datetime
+import os
 from dateutil import tz
+from skimage import io
+from PIL import Image
 import json
+
+def estimate_sharpness(filepath):
+    """
+    Estimate image sharpness
+    https://stackoverflow.com/questions/6646371/detect-which-image-is-sharper
+    """
+    with open(filepath, 'rb') as f:
+        im = Image.open(f).convert('L') # to grayscale
+
+    array = np.asarray(im, dtype=np.int32)
+    gy, gx = np.gradient(array)
+    gnorm = np.sqrt(gx**2 + gy**2)
+    sharpness = np.average(gnorm)
+    return sharpness
+
+def average_color(filepath):
+    """
+    Calculate the average pixel intensity of an image
+    Input:
+        filepath - file path for an image
+    Returned:
+        av, avall - av (np.array of average r, g, b values), avall average of r,g,b
+    """
+    with open(filepath, 'rb') as f:
+        img = io.imread(f)
+    av = img.mean(axis=0).mean(axis=0)
+    avall = av.mean(axis=0)
+    return av, avall
 
 def json2dict(jsonfile):
     with open(jsonfile, "r") as data:
@@ -52,21 +83,30 @@ def unix2dts(unixnumber, timezone='eastern'):
     date_time_str = date_time_obj.strftime('%Y-%m-%d %H:%M:%S')
     return date_time_str, date_time_obj
 
-def filetime2timestr(filename, timezone='eastern'):
+def filetime2timestr(filepath, timezone='eastern'):
     """
-    Return the local time from an image filename
-
+    Return the local time and the Unix Epoch string from an image filename or path
+    Does not work with backslashes (e.g., Windows paths)
     """
     if timezone.lower() == 'eastern':
         tzone = tz.gettz('America/New_York')
     elif timezone.lower() == 'utc':
         tzone = tz.gettz('UTC')
 
+    # remove path
+    filename = os.path.split(os.path.normpath(filepath))[-1]
+    # split on '.', take first on
     s = filename.split('.')[0]
+    
+    #TODO - Could check camera type and correct last digit, but it does not affect seconds
+    
     date_time_str, date_time_obj = unix2dts(s)
-    return date_time_str
+    return date_time_str, s
 
 def timestr2filename(date_time_str, camera = 'c1', image_type = 'timex', timezone='eastern'):
+    """
+    Return a filename given a date_time_str and other info
+    """
     # filenames have extra digit added to time stamps - here is a dict listing them
     last_number = {'snap': 0, 'timex': 1, 'var': 2, 'bright': 3, 'dark': 4, 'rundark': 5}
     if timezone.lower() == 'eastern':
