@@ -3,7 +3,37 @@ import numpy as np
 import datetime
 import os
 from dateutil import tz
+from skimage import io
+from PIL import Image
 import json
+
+def estimate_sharpness(filepath):
+    """
+    Estimate image sharpness
+    https://stackoverflow.com/questions/6646371/detect-which-image-is-sharper
+    """
+    with open(filepath, 'rb') as f:
+        im = Image.open(f).convert('L') # to grayscale
+
+    array = np.asarray(im, dtype=np.int32)
+    gy, gx = np.gradient(array)
+    gnorm = np.sqrt(gx**2 + gy**2)
+    sharpness = np.average(gnorm)
+    return sharpness
+
+def average_color(filepath):
+    """
+    Calculate the average pixel intensity of an image
+    Input:
+        filepath - file path for an image
+    Returned:
+        av, avall - av (np.array of average r, g, b values), avall average of r,g,b
+    """
+    with open(filepath, 'rb') as f:
+        img = io.imread(f)
+    av = img.mean(axis=0).mean(axis=0)
+    avall = av.mean(axis=0)
+    return av, avall
 
 def json2dict(jsonfile):
     with open(jsonfile, "r") as data:
