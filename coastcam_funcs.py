@@ -7,13 +7,19 @@ from skimage import io
 from PIL import Image
 import json
 
-def estimate_sharpness(filepath):
+def estimate_sharpness(filepath,fs=None):
     """
     Estimate image sharpness
     https://stackoverflow.com/questions/6646371/detect-which-image-is-sharper
     """
-    with open(filepath, 'rb') as f:
-        im = Image.open(f).convert('L') # to grayscale
+    if fs:
+        # using fsspec for S3 files
+        with fs.open(filepath,'rb') as f:
+            im = Image.open(f).convert('L') # to grayscale
+    else:
+        # regular file system
+        with open(filepath, 'rb') as f:
+            im = Image.open(f).convert('L') # to grayscale
 
     array = np.asarray(im, dtype=np.int32)
     gy, gx = np.gradient(array)
@@ -21,7 +27,7 @@ def estimate_sharpness(filepath):
     sharpness = np.average(gnorm)
     return sharpness
 
-def average_color(filepath):
+def average_color(filepath,fs=None):
     """
     Calculate the average pixel intensity of an image
     Input:
@@ -29,8 +35,13 @@ def average_color(filepath):
     Returned:
         av, avall - av (np.array of average r, g, b values), avall average of r,g,b
     """
-    with open(filepath, 'rb') as f:
-        img = io.imread(f)
+    if fs:
+        with fs.open(filepath,'rb') as f:
+            img = io.imread(f)
+    else:
+        with open(filepath, 'rb') as f:
+            img = io.imread(f)
+            
     av = img.mean(axis=0).mean(axis=0)
     avall = av.mean(axis=0)
     return av, avall
