@@ -1,6 +1,7 @@
 #
 import numpy as np
 import datetime
+import os
 from dateutil import tz
 import json
 
@@ -52,21 +53,30 @@ def unix2dts(unixnumber, timezone='eastern'):
     date_time_str = date_time_obj.strftime('%Y-%m-%d %H:%M:%S')
     return date_time_str, date_time_obj
 
-def filetime2timestr(filename, timezone='eastern'):
+def filetime2timestr(filepath, timezone='eastern'):
     """
-    Return the local time from an image filename
-
+    Return the local time and the Unix Epoch string from an image filename or path
+    Does not work with backslashes (e.g., Windows paths)
     """
     if timezone.lower() == 'eastern':
         tzone = tz.gettz('America/New_York')
     elif timezone.lower() == 'utc':
         tzone = tz.gettz('UTC')
 
+    # remove path
+    filename = os.path.split(os.path.normpath(filepath))[-1]
+    # split on '.', take first on
     s = filename.split('.')[0]
+    
+    #TODO - Could check camera type and correct last digit, but it does not affect seconds
+    
     date_time_str, date_time_obj = unix2dts(s)
-    return date_time_str
+    return date_time_str, s
 
 def timestr2filename(date_time_str, camera = 'c1', image_type = 'timex', timezone='eastern'):
+    """
+    Return a filename given a date_time_str and other info
+    """
     # filenames have extra digit added to time stamps - here is a dict listing them
     last_number = {'snap': 0, 'timex': 1, 'var': 2, 'bright': 3, 'dark': 4, 'rundark': 5}
     if timezone.lower() == 'eastern':
