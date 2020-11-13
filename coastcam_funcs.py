@@ -22,10 +22,11 @@ def estimate_sharpness(filepath,fs=None):
             im = Image.open(f).convert('L') # to grayscale
 
     array = np.asarray(im, dtype=np.int32)
+    contrast = array.std()
     gy, gx = np.gradient(array)
     gnorm = np.sqrt(gx**2 + gy**2)
     sharpness = np.average(gnorm)
-    return sharpness
+    return sharpness, contrast
 
 def average_color(filepath,fs=None):
     """

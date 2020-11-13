@@ -269,8 +269,8 @@ class Rectifier(object):
         totalW = M.copy()
 
         for cur_idx, (image_file, intrinsic_cal, extrinsic_cal) in enumerate(zip(image_files, intrinsic_cal_list, extrinsic_cal_list)):
-            print("loop",cur_idx,"calibrations:")
-            print(intrinsic_cal, extrinsic_cal)
+            #  print("loop",cur_idx,"calibrations:")
+            #  print(intrinsic_cal, extrinsic_cal)
             # load camera calibration file and find pixel locations
             camera_calibration = CameraCalibration(metadata, intrinsic_cal, extrinsic_cal, local_origin)
             U, V, flag = self._find_distort_UV(camera_calibration)
@@ -285,15 +285,10 @@ class Rectifier(object):
                 image = imageio.imread(image_file)
                 
             K = self.get_pixels(U, V, image, interp_method=interp_method)
-            #print("Shape of K: ",np.shape(K), "shape of V: ",np.shape(V))
-            #print("back from get_pixels")
             W = self.assemble_image_weights(K)
-            #print("back from assemble_image_weights")
             K_weighted = self.apply_weights_to_pixels(K, W)
-            #print("back from apply_weights_to_pixles")
 
             # add up weights and pixel itensities
-            # W[np.isnan(W)] = 0
             totalW = totalW + W[:, :, np.newaxis]
             K_weighted[np.isnan(K_weighted)] = 0
             M = M + K_weighted
@@ -306,4 +301,6 @@ class Rectifier(object):
         M[np.isnan(M)]=0
         
         #TODO - don't need to return W, K or flag...they are from last image processed
-        return M.astype(np.uint8), W, K, flag
+        # return M.astype(np.uint8), W, K, flag
+
+        return M.astype(np.uint8)
