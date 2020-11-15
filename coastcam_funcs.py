@@ -6,6 +6,7 @@ from dateutil import tz
 from skimage import io
 from PIL import Image
 import json
+import matplotlib.pyplot as plt
 
 def estimate_sharpness(filepath,fs=None):
     """
@@ -46,6 +47,58 @@ def average_color(filepath,fs=None):
     av = img.mean(axis=0).mean(axis=0)
     avall = av.mean(axis=0)
     return av, avall
+
+def detect_blur_fft(filepath, size=60, vis=False, fs=None):
+    """
+    Use high-frequency content of image fft to determine blur
+    From: https://www.pyimagesearch.com/2020/06/15/opencv-fast-fourier-transform-fft-for-blur-detection-in-images-and-video-streams/
+    """
+    if fs:
+        with fs.open(filepath,'rb') as f:
+            img = io.imread(f, as_gray=True)
+    else:
+        with open(filepath, 'rb') as f:
+            img = io.imread(f, as_gray=True)
+
+    # grab the dimensions of the image and use the dimensions to
+    # derive the center (x, y)-coordinates
+    (h, w) = img.shape
+    (cX, cY) = (int(w / 2.0), int(h / 2.0))
+    fft = np.fft.fft2(img)
+    fftShift = np.fft.fftshift(fft)
+    # zero-out the center of the FFT shift (i.e., remove low
+    # frequencies), apply the inverse shift such that the DC
+    # component once again becomes the top-left, and then apply
+    # the inverse FFT
+    fftShift[cY - size:cY + size, cX - size:cX + size] = 0
+    # check to see if we are visualizing our output
+    if vis:
+        # compute the magnitude spectrum of the transform
+        np.seterr(all='ignore') # suppress log of zero error
+        magnitude = 20 * np.log(np.abs(fftShift))
+        # display the original input image
+        (fig, ax) = plt.subplots(1, 2, )
+        ax[0].imshow(img, cmap="gray")
+        ax[0].set_title("Input")
+        ax[0].set_xticks([])
+        ax[0].set_yticks([])
+        # display the magnitude image
+        ax[1].imshow(magnitude, cmap="gray")
+        ax[1].set_title("Magnitude Spectrum")
+        ax[1].set_xticks([])
+        ax[1].set_yticks([])
+        # show our plots
+        plt.show()
+        
+    fftShift = np.fft.ifftshift(fftShift)
+    recon = np.fft.ifft2(fftShift)
+    # compute the magnitude spectrum of the reconstructed image,
+    # then compute the mean of the magnitude values
+    magnitude = 20 * np.log(np.abs(recon))
+    mean = np.mean(magnitude)
+    # the image will be considered "blurry" if the mean value of the
+    # magnitudes is less than the threshold value
+    return mean
 
 def json2dict(jsonfile):
     with open(jsonfile, "r") as data:
