@@ -11,7 +11,7 @@ from coastcam_funcs import *
 from calibration_crs import *
 from rectifier_crs import *
 
-rectify_caco_func(impaths,fs):
+def rectify_caco_func(impaths,fs):
     """
     Rectify one pair of images for CACO01
     """

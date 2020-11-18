@@ -130,36 +130,36 @@ class CameraCalibration(object):
         return P, R, IC
 
 
-def angle2R(azimuth, tilt, swing):
-    """Assembles and returns a rotation matrix R from azimuth, tilt, and swing (roll)
+# def angle2R(azimuth, tilt, swing):
+#     """Assembles and returns a rotation matrix R from azimuth, tilt, and swing (roll)
 
-    Notes:
-        - derived from angles2R.m by Costal Imaging Research Network and Oregon State University
-        - From p 612 of Wolf, 1983
+#     Notes:
+#         - derived from angles2R.m by Costal Imaging Research Network and Oregon State University
+#         - From p 612 of Wolf, 1983
 
-    Arguments:
-        azimuth (float): Azimuth
-        tilt (float): Tilt
-        swith (float): swing
+#     Arguments:
+#         azimuth (float): Azimuth
+#         tilt (float): Tilt
+#         swith (float): swing
 
-    Returns:
-        R (np.ndarray): Rotation matrix
-    """
-    a = azimuth
-    t = tilt
-    s = swing
-    R = np.zeros((3, 3))
+#     Returns:
+#         R (np.ndarray): Rotation matrix
+#     """
+#     a = azimuth
+#     t = tilt
+#     s = swing
+#     R = np.zeros((3, 3))
 
-    R[0, 0] = np.cos(a) * np.cos(s) + np.sin(a) * np.cos(t) * np.sin(s)
-    R[0, 1] = -np.cos(s) * np.sin(a) + np.sin(s) * np.cos(t) * np.cos(a)
-    R[0, 2] = np.sin(s) * np.sin(t)
+#     R[0, 0] = np.cos(a) * np.cos(s) + np.sin(a) * np.cos(t) * np.sin(s)
+#     R[0, 1] = -np.cos(s) * np.sin(a) + np.sin(s) * np.cos(t) * np.cos(a)
+#     R[0, 2] = np.sin(s) * np.sin(t)
 
-    R[1, 0] = -np.sin(s) * np.cos(a) + np.cos(s) * np.cos(t) * np.sin(a)
-    R[1, 1] = np.sin(s) * np.sin(a) + np.cos(s) * np.cos(t) * np.cos(a)
-    R[1, 2] = np.cos(s) * np.sin(t)
+#     R[1, 0] = -np.sin(s) * np.cos(a) + np.cos(s) * np.cos(t) * np.sin(a)
+#     R[1, 1] = np.sin(s) * np.sin(a) + np.cos(s) * np.cos(t) * np.cos(a)
+#     R[1, 2] = np.cos(s) * np.sin(t)
 
-    R[2, 0] = np.sin(t) * np.sin(a)
-    R[2, 1] = np.sin(t) * np.cos(a)
-    R[2, 2] = -np.cos(t)
+#     R[2, 0] = np.sin(t) * np.sin(a)
+#     R[2, 1] = np.sin(t) * np.cos(a)
+#     R[2, 2] = -np.cos(t)
 
-    return R
+#     return R

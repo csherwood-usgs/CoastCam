@@ -8,9 +8,6 @@ from PIL import Image
 import json
 import matplotlib.pyplot as plt
 
-from calibration_crs import *
-from rectifier_crs import *
-
 def estimate_sharpness(filepath,fs=None):
     """
     Estimate image sharpness
@@ -188,7 +185,6 @@ def timestr2filename(date_time_str, camera = 'c1', image_type = 'timex', timezon
     fn = str(ts)+'.'+camera+'.'+image_type+'.jpg'
     return fn
 
-
 def local_transform_points( xo, yo, ang, flag, xin, yin):
     """
     Transforms between local World Coordinates and Geographical
@@ -285,46 +281,46 @@ def local_transform_extrinsics(local_xo,local_yo,local_angd,flag,extrinsics_in):
 
     return extrinsics_out
 
-    def assembleP(extrinsics, intrinsics):
-        """Assembles and returns Projective (P) matrix from LCP and Beta values.
+def assembleP(extrinsics, intrinsics):
+    """Assembles and returns Projective (P) matrix from LCP and Beta values.
 
-        Notes:
-            - Derived from lcpBeta2P.m + CiRN notes
-            - K converts angle away from the center of view into camera coordinates
-            - R describes the 3D viewing direction of camera compared to world coordinates
-            - beta[:3] camera location in world coordinates (x,y,z)
-            - beta[3::] camera orientation (azimuth, tilt, roll)
+    Notes:
+        - Derived from lcpBeta2P.m + CiRN notes
+        - K converts angle away from the center of view into camera coordinates
+        - R describes the 3D viewing direction of camera compared to world coordinates
+        - beta[:3] camera location in world coordinates (x,y,z)
+        - beta[3::] camera orientation (azimuth, tilt, roll)
 
-        Returns:
-            P (np.ndarray): Projective matrix
+    Returns:
+        P (np.ndarray): Projective matrix
 
-        Based on Axion object
-        """
-        # K: intrinsic matrix, puts image in pixel units of the specific camera
-        K = np.array([
-            [intrinsics['fx'], 0.,                intrinsics['c0U']],
-            [0.,              -intrinsics['fy'],  intrinsics['c0V']],
-            [0.,               0.,                1.]
-        ])
-        # R: rotation matrix, puts image in camera orientation
-        R = angle2R(
-            extrinsics['a'],
-            extrinsics['t'],
-            extrinsics['r']
-        )
-        # I: identify matrix augmented by camera center, puts image in camera coordinates
-        IC = np.vstack((
-            np.eye(3),
-            -extrinsics['x'],-extrinsics['y'],-extrinsics['z']
-            )).T
-        KR = np.matmul(K, R)
-        P = np.matmul(KR, IC)
+    Based on Axion object
+    """
+    # K: intrinsic matrix, puts image in pixel units of the specific camera
+    K = np.array([
+        [intrinsics['fx'], 0.,                intrinsics['c0U']],
+        [0.,              -intrinsics['fy'],  intrinsics['c0V']],
+        [0.,               0.,                1.]
+    ])
+    # R: rotation matrix, puts image in camera orientation
+    R = angle2R(
+        extrinsics['a'],
+        extrinsics['t'],
+        extrinsics['r']
+    )
+    # I: identify matrix augmented by camera center, puts image in camera coordinates
+    IC = np.vstack((
+        np.eye(3),
+        -extrinsics['x'],-extrinsics['y'],-extrinsics['z']
+        )).T
+    KR = np.matmul(K, R)
+    P = np.matmul(KR, IC)
 
-        # Make the matrix homogenous, methods use homogenous coordinates for easier math
-        # - normalize to make last element equal 1
-        P = P/P[-1, -1]
+    # Make the matrix homogenous, methods use homogenous coordinates for easier math
+    # - normalize to make last element equal 1
+    P = P/P[-1, -1]
 
-        return P
+    return P
 
 
 def angle2R(azimuth, tilt, swing):
@@ -360,51 +356,3 @@ def angle2R(azimuth, tilt, swing):
     R[2, 2] = -np.cos(t)
 
     return R
-
-def rectify_caco_func(impaths,fs):
-    """
-    Rectify one pair of images for CACO01
-    """
-    # List of files...three for each camera. Calibration parameters are in .json format
-    # These are the USGS image filename format
-    extrinsic_cal_files = ['CACO01_C1_EOBest.json','CACO01_C2_EOBest.json']
-    intrinsic_cal_files = ['CACO01_C1_IOBest.json','CACO01_C2_IOBest.json']
-
-    # Dict providing the metadata that the Axiom code infers from the USACE filename format
-    metadata= {'name': 'CACO-01', 'serial_number': 1, 'camera_number': 'C1', 'calibration_date': '2019-12-12', 'coordinate_system': 'geo'}
-    # dict providing origin and orientation of the local grid
-    local_origin = {'x': 410935.,'y':4655890., 'angd': 55.}
-
-    # read cal files and make lists of cal dicts
-    extrinsics_list = []
-    for f in extrinsic_cal_files:
-        extrinsics_list.append( json2dict(f) )
-    intrinsics_list = []
-    for f in intrinsic_cal_files:
-        intrinsics_list.append( json2dict(f) )
-
-    calibration = CameraCalibration(metadata,intrinsics_list[0],extrinsics_list[0],local_origin)
-
-    xmin = 0.
-    xmax = 500.
-    ymin = 0.
-    ymax = 700.
-    dx = 1.
-    dy = 1.
-    z =  0.
-
-    rectifier_grid = TargetGrid(
-        [xmin, xmax],
-        [ymin, ymax],
-        dx,
-        dy,
-        z
-    )
-
-    rectifier = Rectifier(
-        rectifier_grid
-    )
-
-    rectified_image = rectifier.rectify_images(metadata, impaths, intrinsics_list, \
-                                    extrinsics_list, local_origin, fs=fs)
-    return rectified_image
