@@ -15,7 +15,7 @@ There are a few differences between the USACE examples and the USGS data stored 
 `write_IOEO_to_json.m` - Matlab script to convert calibrations in `.mat` format to JSON files.  
 `rectifier_crs.py` - Code to rectify images, USGS version.  
 `calibration_crs.py` - Code to ingest intrinsic and extrinsic calibration data and provide rotation matrices.  
-`coastcam_funcs.py` - Collection of useful functions. 
+`coastcam_funcs.py` - Collection of useful functions.  
 `rectify_caco01` - Working version for rectifying images on the S3 bucket  
 
 #### Test notebooks to explore various processing
