@@ -308,7 +308,7 @@ def assembleP(extrinsics, intrinsics):
         extrinsics['t'],
         extrinsics['r']
     )
-    # I: identify matrix augmented by camera center, puts image in camera coordinates
+    # I: identity matrix augmented by camera center, puts image in camera coordinates
     IC = np.vstack((
         np.eye(3),
         -extrinsics['x'],-extrinsics['y'],-extrinsics['z']
