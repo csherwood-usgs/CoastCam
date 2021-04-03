@@ -1,13 +1,13 @@
 % write_IOEO_to_dict - Convert Brittany's .mat format to json
 clear
 % specifiy input file
-cal_fn = 'CACO01_C1_IOEOBest.mat'
+cal_fn = 'CACO02_C2_IOEOInitial_noT5.mat'
 
 % make output file names
 c = split(cal_fn, '.')
 cal_fun_IO_json = [replace(c{1},'IOEO','IO'),'.json']
 cal_fun_EO_json = [replace(c{1},'IOEO','EO'),'.json']
-cal_fun_IOEO_json = c{1}
+cal_fun_IOEO_json = [c{1},'.json']
 
 % read calib file
 load(cal_fn)
