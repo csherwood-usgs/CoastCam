@@ -58,7 +58,7 @@ class CameraCalibration(object):
             # already in local coordinates, but need to make beta array
             self.beta = beta = np.array([*self.local_extrinsics.values()], dtype='float64')
 
-        self.P, self.R, self.IC = self._assembleP()
+        self.P, self.R, self.IC = assembleP(self.lcp, self.beta)
 
     def __repr__(self):
         msg = (
@@ -90,44 +90,44 @@ class CameraCalibration(object):
         beta = np.array([*local_extrinsics.values()], dtype='float64')
         return beta, local_extrinsics
 
-    def _assembleP(self):
-        """Assembles and returns Projective (P) matrix from LCP and Beta values.
+def assembleP(lcp, beta):
+    """Assembles and returns Projective (P) matrix from LCP and Beta values.
 
-        Notes:
-            - Derived from lcpBeta2P.m + CiRN notes
-            - K converts angle away from the center of view into camera coordinates
-            - R describes the 3D viewing direction of camera compared to world coordinates
-            - beta[:3] camera location in world coordinates (x,y,z)
-            - beta[3::] camera orientation (azimuth, tilt, roll) in radians
+    Notes:
+        - Derived from lcpBeta2P.m + CiRN notes
+        - K converts angle away from the center of view into camera coordinates
+        - R describes the 3D viewing direction of camera compared to world coordinates
+        - beta[:3] camera location in world coordinates (x,y,z)
+        - beta[3::] camera orientation (azimuth, tilt, roll) in radians
 
-        Returns:
-            P (np.ndarray): Projective matrix
-        """
-        # K: intrinsic matrix, puts image in pixel units of the specific camera
-        K = np.array([
-            [self.lcp['fx'], 0,               self.lcp['c0U']],
-            [0,              -self.lcp['fy'], self.lcp['c0V']],
-            [0,              0,               1]
-        ])
-        # R: rotation matrix, puts image in camera orientation
-        R = angle2R(
-            self.beta[3],
-            self.beta[4],
-            self.beta[5]
-        )
-        # I: identify matrix augmented by camera center, puts image in camera coordinates
-        IC = np.vstack((
-            np.eye(3),
-            -self.beta[:3]
-        )).T
-        KR = np.matmul(K, R)
-        P = np.matmul(KR, IC)
+    Returns:
+        P (np.ndarray): Projective matrix
+    """
+    # K: intrinsic matrix, puts image in pixel units of the specific camera
+    K = np.array([
+        [lcp['fx'], 0,               lcp['c0U']],
+        [0,              -lcp['fy'], lcp['c0V']],
+        [0,              0,               1]
+    ])
+    # R: rotation matrix, puts image in camera orientation
+    R = angle2R(
+        beta[3],
+        beta[4],
+        beta[5]
+    )
+    # I: identify matrix augmented by camera center, puts image in camera coordinates
+    IC = np.vstack((
+        np.eye(3),
+        -beta[:3]
+    )).T
+    KR = np.matmul(K, R)
+    P = np.matmul(KR, IC)
 
-        # Make the matrix homogenous, methods use homogenous coordinates for easier math
-        # - normalize to make last element equal 1
-        P = P/P[-1, -1]
+    # Make the matrix homogenous, methods use homogenous coordinates for easier math
+    # - normalize to make last element equal 1
+    P = P/P[-1, -1]
 
-        return P, R, IC
+    return P, R, IC
 
 
 # def angle2R(azimuth, tilt, swing):
