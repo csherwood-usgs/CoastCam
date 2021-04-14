@@ -280,48 +280,6 @@ def local_transform_extrinsics(local_xo,local_yo,local_angd,flag,extrinsics_in):
 
     return extrinsics_out
 
-# def assembleP(intrinsics, extrinsics):
-#     """Assembles and returns Projective (P) matrix from LCP and Beta values.
-#
-#     Notes:
-#         - Derived from lcpBeta2P.m + CiRN notes
-#         - K converts angle away from the center of view into camera coordinates
-#         - R describes the 3D viewing direction of camera compared to world coordinates
-#         - beta[:3] camera location in world coordinates (x,y,z)
-#         - beta[3::] camera orientation (azimuth, tilt, roll)
-#
-#     Returns:
-#         P (np.ndarray): Projective matrix
-#
-#     Based on Axion object
-#     """
-#     # K: intrinsic matrix, puts image in pixel units of the specific camera
-#     print('in assembleP',intrinsics,extrinsics)
-#     K = np.array([
-#         [intrinsics['fx'], 0.,                intrinsics['c0U']],
-#         [0.,              -intrinsics['fy'],  intrinsics['c0V']],
-#         [0.,               0.,                1.]
-#     ])
-#     # R: rotation matrix, puts image in camera orientation
-#     R = angle2R(
-#         extrinsics['a'],
-#         extrinsics['t'],
-#         extrinsics['r']
-#     )
-#     # I: identity matrix augmented by camera center, puts image in camera coordinates
-#     IC = np.vstack((
-#         np.eye(3),
-#         -extrinsics['x'],-extrinsics['y'],-extrinsics['z']
-#         )).T
-#     KR = np.matmul(K, R)
-#     P = np.matmul(KR, IC)
-#
-#     # Make the matrix homogenous, methods use homogenous coordinates for easier math
-#     # - normalize to make last element equal 1
-#     P = P/P[-1, -1]
-#
-#     return P
-
 def angle2R(azimuth, tilt, swing):
     """Assembles and returns a rotation matrix R from azimuth, tilt, and swing (roll)
 
