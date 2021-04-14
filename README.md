@@ -2,21 +2,51 @@
 
 This resides under ../crs/src/CoastCam on my laptop and under ../src/CoastCam on my Workspaces instance.ls
 
-### Code from Axiom provided by Brittany Bruder with minimum modifications to run with USACE examples
+Routines are in two files:
+`coastcam.py` - Main calibration and rectification routines
+`coastcam_funcs.py` - Various helper and utility routines
+
+### coastcam.py
+
+### coastcam_funcs.py - Collection of utility routines
+
+#### Image quality
+`estimate_sharpness(img)` - Estimate image sharpness and contrast
+
+`average_color(img)` - Calculate the average pixel intensity of an image
+
+`detect_blur_fft(img, size=60, vis=False)` - Use high-frequency content of image fft to determine blur
+
+#### JSON
+`def json2dict(jsonfile)` - Read a .json file into a dict
+
+#### Date/time/filename
+`def dts2unix(date_time_string, timezone='eastern')` - Return the unix epoch time and a datetime object with aware UTC time zone
+
+`unix2dts(unixnumber, timezone='eastern')` - Get local time from unix number
+
+`filetime2timestr(filepath, timezone='eastern')` - Return the local time and the Unix Epoch string from an image filename or path
+
+`timestr2filename(date_time_str, camera = 'c1', image_type = 'timex', timezone='eastern')` - Return a filename given a date_time_str and other info
+ 
+### `./awss` - Shell scripts with useful AWS CLI commands for examining S3
+
+### `./data` - Image files and calibration data for tests
+
+### `./misc` - Misc. code that probably should not be in this repo
+
+### `./original_code` - Code from Axiom provided by Brittany Bruder with minimum modifications to run with USACE examples
 
 `rectifyer.py` - Axiom code for rectification  
 `calibration.py` - Axiom code for reading .mat calib files and generating transformation matrices  
-`test_rectificatyion.ipynb` - Code to test Axiom routines with USACE data  
+`test_rectificatyion.ipynb` - Code to test Axiom routines with USACE data 
 
+### `./tests` - Examples and test code
 
-### Code modified for USGS CoastCam data
-There are a few differences between the USACE examples and the USGS data stored on CHS. USACE extrinsics are in local coordinates (e.g., alongshore/cross-shore; USGS extrinsics are in world coordinates (e.g., UTM northing/easting). USACE calibration data is stored in .mat files and includes some metadata. As of now, USGS calibration info is stored in two files (intrinsic and extrinsic) in JSON format that looks like the dict it is read into. The USGS routines need some additional metadata...right now, this is provided in the form of a dict that is hard-coded. (We are only processing one station).
+### `./util` - Utilities
 
-`write_IOEO_to_json.m` - Matlab script to convert calibrations in `.mat` format to JSON files.  
-`rectifier_crs.py` - Code to rectify images, USGS version.  
-`calibration_crs.py` - Code to ingest intrinsic and extrinsic calibration data and provide rotation matrices.  
-`coastcam_funcs.py` - Collection of useful functions.  
-`rectify_caco01` - Working version for rectifying images on the S3 bucket  
+`write_IOEO_to_json.m` - Matlab script to convert calibrations in `.mat` format to JSON files.
+`parse_s3_inventory.ipynb`
 
 #### Test notebooks to explore various processing
 
