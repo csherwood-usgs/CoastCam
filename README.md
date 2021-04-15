@@ -24,16 +24,13 @@ Main routines are in two files:
 * `find_distort_UV(target_grid, calibration)` - get UV for pinhole camera
 
 ### coastcam_funcs.py - Collection of utility routines
-
-#### Image quality
+##### Image quality
 * `estimate_sharpness(img)` - Estimate image sharpness and contrast
 * `average_color(img)` - Calculate the average pixel intensity of an image
 * `detect_blur_fft(img, size=60, vis=False)` - Use high-frequency content of image fft to determine blur
-
-#### JSON
+##### JSON
 `def json2dict(jsonfile)` - Read a .json file into a dict
-
-#### Date/time/filename
+##### Date/time/filename
 * `dts2unix(date_time_string, timezone='eastern')` - Return the unix epoch time and a datetime object with aware UTC time zone
 * `unix2dts(unixnumber, timezone='eastern')` - Get local time from unix number
 * `filetime2timestr(filepath, timezone='eastern')` - Return the local time and the Unix Epoch string from an image filename or path
