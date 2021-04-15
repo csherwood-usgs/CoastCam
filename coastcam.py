@@ -28,9 +28,12 @@ class TargetGrid(object):
         Z (np.ndarray): Local grid coordinates in z-direction.
         xyz (np.ndarray): The grid where pixels are compiled from images for rectification.
     """
-    def __init__(self, xlims, ylims, dx=1, dy=1, z=0.0):
-        x = np.arange(xlims[0], xlims[1]+dx, dx)
-        y = np.arange(ylims[0], ylims[1]+dx, dy)
+    def __init__(self,tgi,z=0.0):
+        # tgi is shorthand for target_grid_info dict
+        # x = np.arange(xlims[0], xlims[1]+dx, dx)
+        # y = np.arange(ylims[0], ylims[1]+dx, dy)
+        x = np.arange(tgi['xmin'], tgi['xmax']+tgi['dx'],tgi['dx'])
+        y = np.arange(tgi['ymin'], tgi['ymax']+tgi['dy'],tgi['dy'])
         self.X, self.Y = np.meshgrid(x, y)
         self.Z = np.zeros_like(self.X) + z
         self.xyz = self._xyz_grid()
@@ -49,30 +52,21 @@ class CameraCalibration(object):
         - Asssumes calibration saved in .mat file
 
     Args:
-        metadata
+        configuration dict (abbreviated as cfg)
         extrinsics
         intrinsics
         local_origin
 
     Attributes:
-        fname (str): Name of camera calibration file
-        serial_number (int): Camera serial number
-        camera_number (str): Camera number (e.g. 'c5')
-        calibration_date (datetime): Date of camera calibration
         coordinate_system (str): Coordinate system used for calibration (e.g. 'xyz')
         beta (np.ndarray): Camera extrinsic calibration
             x (across shore), y (longshore), z (vertical), azimuth, tilt, roll
         lcp (dict): Lens Calibration Profile structure, the intrinsic camera calibration
         P (np.ndarray): Matrix containing intrinsic and extrinsic calibration
     """
-    def __init__(self, metadata, intrinsics, extrinsics, local_origin):
-        self.fname = metadata['name']
-        # this assumes a file naming convention we have not adopted
-        self.serial_number = metadata['serial_number']
-        self.camera_number = metadata['camera_number']
-        self.calibration_date = metadata['calibration_date']
+    def __init__(self, cfg, intrinsics, extrinsics):
         # coordinate system is either 'xyz' or 'geo'
-        self.coordinate_system = metadata['coordinate_system'].lower()
+        self.coordinate_system = cfg['coordinate_system'].lower()
         print('in CameraCalibration',intrinsics)
         self.lcp = intrinsics
         if self.coordinate_system == 'geo':
@@ -82,9 +76,9 @@ class CameraCalibration(object):
             self.world_extrinsics = {}
             self.local_extrinsics = extrinsics
         else:
-            print('Invalid value of coordinate_system: ',metadata['coordinate_system'])
+            print('Invalid value of coordinate_system: ',cfg['coordinate_system'])
 
-        self.local_origin = local_origin
+        self.local_origin = cfg['local_origin']
 
         if self.coordinate_system == 'geo':
             # calculate local extrinsics
@@ -482,13 +476,12 @@ def find_distort_UV(target_grid, calibration):
     # apply the flag to zero-out non-valid points
     return DU*flag, DV*flag, flag
 
-def rectify_images(target_grid, ncolors, metadata, image_files, intrinsic_cal_list, extrinsic_cal_list, local_origin, fs=None, interp_method = 'rgi'):
+def rectify_images(cfg, target_grid, image_files, intrinsic_cal_list, extrinsic_cal_list, fs, interp_method = 'rgi'):
     """Georectify and blend images from multiple cameras
 
     Arguments:
         target_grid (class):
-        ncolors (int): number of bands in images (e.g., ncolors = 3 for RGB)
-        metadata (dict):
+        cfg (dict):
         image_files (list): list of paths to image files (one for each camera)
         intrinsic_cal_list (list): list of paths to internal calibrations (one for each camera)
         extrinsic_cal_list (list): list of paths to external calibrations (one for each camera)
@@ -500,23 +493,24 @@ def rectify_images(target_grid, ncolors, metadata, image_files, intrinsic_cal_li
     Returns:
         M (np.ndarray): Georectified images merged from supplied images.
     """
+    local_origin = cfg['local_origin']
+    nc = cfg['n_colors']
     # array for final pixel values
     M = np.tile(
         np.zeros_like(target_grid.X[:, :, np.newaxis]),
-        (ncolors,)
+        (nc,)
     )
     # array for weights
     totalW = M.copy()
 
     nx = target_grid.X.shape[0]
     ny = target_grid.X.shape[1]
-    nc = ncolors
 
     for cur_idx, (image_file, intrinsic_cal, extrinsic_cal) in enumerate(zip(image_files, intrinsic_cal_list, extrinsic_cal_list)):
         #  print("loop",cur_idx,"calibrations:")
         #  print(intrinsic_cal, extrinsic_cal)
         # load camera calibration file and find pixel locations
-        camera_calibration = CameraCalibration(metadata, intrinsic_cal, extrinsic_cal, local_origin)
+        camera_calibration = CameraCalibration(cfg, intrinsic_cal, extrinsic_cal)
         U, V, flag = find_distort_UV(target_grid, camera_calibration)
 
         # load image and apply weights to pixels
