@@ -7,7 +7,7 @@ from scipy.interpolate import RectBivariateSpline, RegularGridInterpolator
 from scipy.ndimage.morphology import distance_transform_edt
 
 class TargetGrid(object):
-    """Grid generated to georectify image.
+    """Build grid onto which image(s) will be rectified
 
     CRS modified to make endpoints inclusive
     Notes:
@@ -45,7 +45,7 @@ class TargetGrid(object):
         return np.vstack((x, y, z)).T
 
 class CameraCalibration(object):
-    """Camera calibration saved in .mat file and method to assemble Projective (P) martrix.
+    """Generate camera calibration object w/ transformation matrices
 
     Notes:
         - Inspired by example code + notes from CiRC which are derived from Hartley and Zisserman (20030.)
