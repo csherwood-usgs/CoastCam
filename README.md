@@ -2,9 +2,9 @@
 
 This resides under ../crs/src/CoastCam on my laptop and under ../src/CoastCam on my Workspaces instance.  
 
-Main routines are in two files:
-`coastcam.py` - Main calibration and rectification routines  
-`coastcam_funcs.py` - Various helper and utility routines  
+Main routines are in two files:  
+* `coastcam.py` - Main calibration and rectification routines  
+* `coastcam_funcs.py` - Various helper and utility routines  
 
 ### coastcam.py
 #### Main routines
