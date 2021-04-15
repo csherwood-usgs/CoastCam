@@ -8,9 +8,9 @@ Main routines are in two files:
 
 ### coastcam.py
 #### Main routines
-* `class TargetGrid(object)` - Grid generated to georectify image.
-* `class CameraCalibration(object)` - Camera calibration saved in .mat file and method to assemble Projective (P) martrix.
-* `rectify_images(target_grid, ncolors, metadata, image_files, intrinsic_cal_list, extrinsic_cal_list, local_origin, fs=None, interp_method = 'rgi')` - Georectify and blend images from multiple cameras
+* `class TargetGrid(target_grid_info,z=0.0)` - Build grid onto which image(s) will be rectified
+* `class CameraCalibration(cfg, intrinsics, extrinsics)` - Generate camera calibration object w/ transformation matrices
+* `rectify_images(cfg, target_grid, image_files, intrinsic_cal_list, extrinsic_cal_list, fs=None, interp_method = 'rgi')` - Georectify and blend images from multiple cameras
 
 #### Functions called by main routines
 * `_convert_beta(self)` - Changes world coordinates to local coordinate_system
