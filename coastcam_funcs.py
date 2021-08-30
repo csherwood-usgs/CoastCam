@@ -7,6 +7,7 @@ from skimage import io
 from skimage.color import rgb2gray
 
 import json
+import yaml
 import matplotlib.pyplot as plt
 
 #TODO - Pass image arrays, rather than path names to these functions
@@ -31,8 +32,7 @@ def estimate_sharpness(img):
     return sharpness, contrast
 
 def average_color(img):
-    """
-    Calculate the average pixel intensity of an image
+    """ Calculate the average pixel intensity of an image
     Input:
         img - np.ndarray representing image
               img read as skimage.io.imread( 'imagefilename.jpg' )
@@ -44,8 +44,7 @@ def average_color(img):
     return av, avall
 
 def detect_blur_fft(img, size=60, vis=False):
-    """
-    Use high-frequency content of image fft to determine blur
+    """ Use high-frequency content of image fft to determine blur
     Input:
         img - np.ndarray representing image
               img read as skimage.io.imread( 'imagefilename.jpg' )
@@ -98,17 +97,40 @@ def detect_blur_fft(img, size=60, vis=False):
     return mean
 
 def json2dict(jsonfile):
-    """Read a .json file into a dict
+    """ Import contents of a JSON file as a dict
+
+    Args:
+        jsonfile (str): json2dict file to read
+    Returns:
+        dict interpreted from JSON file
     """
     with open(jsonfile, "r") as data:
         dictname = json.loads(data.read())
     return dictname
 
+
+def yaml2dict(yamlfile):
+    """ Import contents of a YAML file as a dict
+
+    Args:
+        yamlfile (str): YAML file to read
+    Returns:
+        dict interpreted from YAML file
+    """
+    dictname = None
+    with open(yamlfile, "r") as infile:
+        try:
+            dictname = yaml.safe_load(infile)
+        except yaml.YAMLerror as exc:
+            print(exc)
+    return dictname
+
+
 def dts2unix(date_time_string, timezone='eastern'):
     """
     Return the unix epoch time and a datetime object with aware UTC time zone
 
-    Input:
+    Args:
         date_time_string in format YY-MM-DD hh:mm
         time zone for date_time string
 
