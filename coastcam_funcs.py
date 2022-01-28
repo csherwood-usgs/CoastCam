@@ -10,7 +10,7 @@ import json
 import yaml
 import matplotlib.pyplot as plt
 
-#TODO - Pass image arrays, rather than path names to these functions
+# TODO - Pass image arrays, rather than path names to these functions
 #     - ...and eliminate packages required to load images
 
 def estimate_sharpness(img):
