@@ -5,6 +5,9 @@ import os
 from dateutil import tz
 from skimage import io
 from skimage.color import rgb2gray
+import astropy.coordinates as ap_coord
+from astropy.time import Time as ap_Time
+import astropy.units as ap_units
 
 import json
 import yaml
@@ -35,11 +38,12 @@ def average_color(img):
     """ Calculate the average pixel intensity of an image
     Input:
         img - np.ndarray representing image
-              img read as skimage.io.imread( 'imagefilename.jpg' )
+              img read as Image.open using PIL
     Returns:
         av, avall - av (np.array of average r, g, b values), avall average of r,g,b
     """
-    av = img.mean(axis=0).mean(axis=0)
+    array = np.asarray( img )
+    av = array.mean(axis=0).mean(axis=0)
     avall = av.mean(axis=0)
     return av, avall
 
@@ -125,6 +129,69 @@ def yaml2dict(yamlfile):
             print(exc)
     return dictname
 
+def sun_az_zen( dts, latitude, longitude):
+    """Calculate azimuth and zenith of sun
+    Uses astropy
+
+    Args:
+        dts - date/time string in standard format, e.g. 2021-03-04T22:00:00
+        latitude - decimal degrees
+        longitude - decimal degrees, west longitude is negative
+
+    Returns:
+        az - solar azimuth (degrees, clockwise from north)
+        zen - solar zenith (degrees down from zenith)
+
+        Tested with suncalc.org
+    """
+    loc = ap_coord.EarthLocation(lon = longitude*ap_units.deg, lat=latitude*ap_units.deg)
+    input_time = ap_Time(dts, format='isot', scale='utc') # UTC time
+    altaz = ap_coord.AltAz(location=loc, obstime=input_time)
+    sun = ap_coord.get_sun(input_time)
+
+    # convert azimuth and zenith to degrees
+    az  = sun.transform_to(altaz).az.degree
+    zen = sun.transform_to(altaz).zen.degree
+    return(az, zen)
+
+
+def days_in_year( dts ):
+    """Calculate number of days in this year
+    Args:
+        dts - date/time string in standard format, e.g. 2021-03-04T22:00:00
+    Returns:
+        ndays - either 365 or 366
+    """
+    ndays = 365
+    year = float(dts[0:4])
+    if (( year%400 == 0) or (( year%4 == 0 ) and ( year%100 != 0))):
+        ndays = 366
+    return ndays
+
+def solar_noon_offset( dts, longitude ):
+    """ Return decimal hours before/after local solar solar_noon
+    Only works for west (negative) longitude
+
+    Args:
+        dts - date/time string in standard format, e.g. 2021-03-04T22:00:00
+        longitude - decimal degrees, west longitude is negative
+    Returns:
+        hsn - decimal hours before (negative) or after local solar noon
+    """
+    solar_noon = 12. - longitude*24./360.
+    hr = (float(dts[11:13]) + float(dts[14:16])/60.)
+    hsn = hr - solar_noon
+    return hsn
+
+
+def datetime2matlabdn( date ):
+    """Convert datetime object to Matlab datenum
+    https://stackoverflow.com/questions/8776414/python-datetime-to-matlab-datenum
+    """
+    ord = date.toordinal()
+    mdn = date + datetime.timedelta(days = 366)
+    frac = (date-datetime.datetime(date.year,date.month,date.day,0,0,0)).seconds / (24.0 * 60.0 * 60.0)
+    return mdn.toordinal() + frac
 
 def dts2unix(date_time_string, timezone='eastern'):
     """
@@ -146,48 +213,38 @@ def dts2unix(date_time_string, timezone='eastern'):
     ts = date_time_obj.timestamp()
     return int(ts), date_time_obj
 
-def unix2dts(unixnumber, timezone='eastern'):
+def unix2dts(unixnumber):
     """
     Get local time from unix number
+
+    Tested with epochconverter.com
 
     Input:
         unixnumber - string containing unix time (aka epoch)
     Returns:
-        date_time_string, date_time_object in utc
+        date_time_string, and naive date_time_object, both in utc
 
-    TODO: not sure why this returns the correct value without specifying that input time zone is eastern
     """
-    if timezone.lower() == 'eastern':
-        tzone = tz.gettz('America/New_York')
-    elif timezone.lower() == 'utc':
-        tzone = tz.gettz('UTC')
-
     # images other than "snaps" end in 1, 2,...but these are not part of the time stamp.
     # replace with zero
     ts = int( unixnumber[:-1]+'0')
     date_time_obj =  datetime.datetime.utcfromtimestamp(ts)
-    date_time_str = date_time_obj.strftime('%Y-%m-%d %H:%M:%S')
+    date_time_str = date_time_obj.strftime('%Y-%m-%dT%H:%M:%S')
     return date_time_str, date_time_obj
 
-def filetime2timestr(filepath, timezone='eastern'):
+def filetime2timestr(filepath):
     """
-    Return the local time and the Unix Epoch string from an image filename or path
+    Return the UTC timestring and the Unix Epoch string from an image filename or path
     Does not work with backslashes (e.g., Windows paths)
-    """
-    if timezone.lower() == 'eastern':
-        tzone = tz.gettz('America/New_York')
-    elif timezone.lower() == 'utc':
-        tzone = tz.gettz('UTC')
 
+    Returns UTC datetime string and naive datetime object
+    """
     # remove path
     filename = os.path.split(os.path.normpath(filepath))[-1]
     # split on '.', take first on
     s = filename.split('.')[0]
-
-    #TODO - Could check camera type and correct last digit, but it does not affect seconds
-
     date_time_str, date_time_obj = unix2dts(s)
-    return date_time_str, s
+    return date_time_str, date_time_obj
 
 def timestr2filename(date_time_str, camera = 'c1', image_type = 'timex', timezone='eastern'):
     """
