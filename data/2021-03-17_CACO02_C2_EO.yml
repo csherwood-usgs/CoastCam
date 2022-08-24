@@ -1,0 +1,32 @@
+# Extrinsic calibration parameters for CACO02, camera 2
+x:
+  value: 420097.474
+  units: meters
+  long_name: UTM Zone 19N Easting (m)
+  epsg: 26919
+y:
+  value: 4638305.461
+  units: meters
+  long_name: UTM Zone 19N Northing (m)
+  epsg: 26919
+z:
+  value: 19.585
+  units: meters
+  long_name: Elevation (m NAVD88)
+  epsg: 5703
+a:
+  value: 1.023
+  units: degrees
+  long_name: Azimuth (degrees geographic convention)
+t:
+  value: 1.184
+  units: degrees
+  long_name: Tilt (degrees up from nadir)
+r:
+  value: 0.058
+  units: degrees
+  long_name: Roll (degrees CCW from horizontal) (check this)
+cal_date: 2021-03-17
+cal_valid_datetime: 2021-03-17 00:00
+cal_contact: csherwood@usgs.gov
+FAN: 2021-FA-xx

@@ -1,0 +1,16 @@
+#!/bin/bash
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618934400.c1.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618934400.c2.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618936200.c1.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618936200.c2.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618938000.c1.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618938000.c2.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618939800.c1.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618939800.c2.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618941600.c1.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618941600.c2.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618943400.c1.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618943400.c2.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618945200.c1.timex.jpg . --profile "coastcam"
+aws s3 cp s3://cmgp-coastcam/cameras/caco-02/products/1618945200.c2.timex.jpg . --profile "coastcam"
+exit 0

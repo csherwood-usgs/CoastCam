@@ -1,0 +1,20 @@
+{
+"station_name": "CACO-01",
+"location": "Head of the Meadow Beach",
+"contact": "csherwood@usgs.gov",
+"camera":
+[
+{"name": "C1",
+ "ext_cal_file":"./data/CACO01_C1_EOBest.json",
+ "int_cal_file":"./data/CACO01_C1_IOBest.json"},
+ {"name": "C2",
+  "ext_cal_file":"./data/CACO01_C2_EOBest.json",
+  "int_cal_file":"./data/CACO01_C2_IOBest.json"}
+],
+"target_grid_info_file" : "./data/CACO01_target_grid_info.json",
+"n_colors": 3,
+"do_hist_bal":true,
+"save_raw_plot_dir":[],
+"save_fin_plot_dir":"./output",
+"save_stats_dir":"./output"
+}

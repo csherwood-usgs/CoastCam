@@ -1,0 +1,22 @@
+# Local coordinate system parameters for CACO1
+x0:
+  value: 410935.
+  units: meters
+  long_name: Local X Origin, UTM Zone 19N Easting (m)
+  epsg: 26919
+y0:
+  value: 4655890.
+  units: meters
+  long_name: Local Y Origin, UTM Zone 19N Northing (m)
+  epsg: 26919
+z0:
+  value: 0.
+  units: meters
+  long_name: Local Z Origin, Elevation (m NAVD88)
+  epsg: 5703
+angd:
+  value: 55.
+  units: degrees
+  long_name: Rotation (degrees clockwise)
+contact: csherwood@usgs.gov
+

@@ -1,0 +1,16 @@
+# Intrinsic parameters for CACO 02 Camera 1
+NU: 2448  # number of vertical pixels
+NV: 2048  # number of horizontal pixels
+c0U: 1175.208918  # vertical center
+c0V: 1086.601829  # horizontal center
+fx: 3589.043204
+fy: 3575.485357
+d1: -0.230895
+d2: 0.198019
+d3: 0.000000
+t1: 0.000884
+t2: -0.000116
+cal_reference: CalTech Calibration Toolbox
+cal_valid_date: 2021-02-25 00:00
+cal_date: 2021-02-25
+cal_contact: csherwood@usgs.gov

@@ -1,0 +1,16 @@
+# Intrinsic parameters for CACO 02 Camera 2
+NU: 2448
+NV: 2048
+c0U: 1308.687599
+c0V: 1051.922325
+fx: 2436.239727
+fy: 2432.003427
+d1: -0.192839
+d2: 0.132773
+d3: 0.000000
+t1: 0.002735
+t2: 0.003042
+cal_reference: CalTech Calibration Toolbox
+cal_valid_date: 2021-02-25 00:00
+cal_date: 2021-02-25
+cal_contact: csherwood@usgs.gov
