@@ -14,3 +14,14 @@ cal_reference: CalTech Calibration Toolbox
 cal_valid_date: 2021-02-25 00:00
 cal_date: 2021-02-25
 cal_contact: csherwood@usgs.gov
+#NU - number of pixel columns
+#NV - number of pixel rows
+#c0U - U component of the principal point
+#c0V - V component of the principal point
+#fx - x component of the focal length (pixels)
+#fy - y component of the focal length (pixels)
+#d1 - first radial distortion coefficient
+#d2 - second radial distortion coefficient
+#d3 - third radial distortion coefficient
+#t1 - first tangential distortion coefficient
+#t2 - second tangential distortion coefficient
