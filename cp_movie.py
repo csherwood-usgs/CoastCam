@@ -47,7 +47,7 @@ except Exception:
 MARCONI_ROOT = Path(r"F:\crs\proj\marconi_imagery")
 
 # Station folder to use (choose one of: "caco-03", "caco-04", "caco-05")
-STATION_DIR_NAME = "caco-05"      # <-- change to "caco-03" or "caco-05"
+STATION_DIR_NAME = "caco-03"      # <-- change to "caco-03" or "caco-05"
 
 # Camera to use ('c1' or 'c2')
 CAMERA = "c2"                      # <-- change to "c1" to use camera 1
@@ -60,8 +60,8 @@ YEAR_DIRS = ["2023", "2024", "2025", "2026"]
 
 # Date range to include (local dates in America/New_York).
 # Use ISO strings "YYYY-MM-DD". Set to None to include all dates.
-START_DATE_STR = None              # e.g., "2024-12-01"
-END_DATE_STR   = None              # e.g., "2025-11-21"
+START_DATE_STR = "2024-08-15"              # e.g., "2024-12-01"
+END_DATE_STR   = "2025-01-25"              # e.g., "2025-11-21"
 
 # Local timezone (for dawn/dusk and timestamp overlay)
 TZ_NAME = "America/New_York"
